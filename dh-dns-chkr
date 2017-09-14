@@ -1,0 +1,73 @@
+#!/bin/bash
+
+# Bash script that runs dig and whos recursively on a domain to determine if the IP is hosted with Dreamhost or not. The script greps the AIRN listing for "new dream" and if it returns a match will notatate it in the out. Fast way to get a good grip on where and what the DNS is doing. The script will also query the dreamhost name servers DNS zone file for that DNS record
+
+dreamhostns[1]="ns1.dreamhost.com"
+dreamhostns[2]="ns2.dreamhost.com"
+dreamhostns[3]="ns3.dreamhost.com"
+gns="8.8.8.8"
+
+nc='\033[0m'
+red='\033[0;31m'
+blue='\033[1;36m'
+yellow='\033[1;33m'
+green='\033[1;32m'
+pink='\033[1;35m'
+silver='\033[1;30m'
+
+if [ -z $1 ]; then
+  echo "Please enter a valid domain name"
+  exit
+fi
+
+echo -e "\n${blue}Quick DreamHost DNS checker${nc} \n"
+
+echo "================="
+
+echo -e "\n"
+
+domain=$1
+
+sleep 1
+
+
+echo -e "Checking public DNS records using ${green}Google${nc} Resolver\n"
+
+dns_ns_results_google=`IFS=' ' dig \@$gns NS $domain +short`
+
+echo -e "Name servers for $domain:\n\n${silver}$dns_ns_results_google${nc}\n"
+
+dns_result_google=`IFS=' ' dig \@$gns $domain +short`
+
+echo -e "Public DNS results for $domain:\n"
+
+for ip_ad in ${dns_result_google[@]}
+  do
+    whois_results=`whois $ip_ad`
+    check_whois_dh=$(echo $whois_results| grep -i "new dream")
+    if [[ -z $check_whois_dh ]]; then
+      echo -e "${red}$ip_ad ${nc}?"
+    else
+       echo -e "${blue}$ip_ad ${nc}DH"
+    fi
+  done
+
+echo -e "\n"
+
+sleep 1
+
+echo -e "Checking the ${blue}DreamHost${nc} name server Records \n"
+
+for index in 1 2 3
+  do
+      dns_result_dh=`dig \@${dreamhostns[index]} $domain +short`
+      if [[ -z $dns_result_dh ]]; then
+	echo -e "${dreamhostns[index]}:\n${pink}$dns_result_dh ${nc}"
+	echo -e "${yellow}This Name server returned no records${nc}\n"
+      else
+      echo -e "${dreamhostns[index]}:\n\n${pink}$dns_result_dh ${nc}\n"
+      fi
+  done
+
+sleep 1
+echo -e "\nDNS check complete\n"
