@@ -13,7 +13,16 @@ blue='\033[1;36m'
 yellow='\033[1;33m'
 green='\033[1;32m'
 pink='\033[1;35m'
-silver='\033[1;30m'
+silver='\033[1;36m'
+whtbold='\033[1:m'
+
+function hr()
+{
+  for line in {1..40}
+    do echo -n $1;
+    done
+}
+
 
 if [ -z $1 ]; then
   echo "Please enter a valid domain name"
@@ -22,7 +31,7 @@ fi
 
 echo -e "\n${blue}Quick DreamHost DNS checker${nc} \n"
 
-echo "================="
+hr "-"
 
 echo -e "\n"
 
@@ -30,8 +39,7 @@ domain=$1
 
 sleep 1
 
-
-echo -e "Checking public DNS records using ${green}Google${nc} Resolver\n"
+echo -e "\nChecking public DNS records using ${green}Google${nc} Resolver\n"
 
 dns_ns_results_google=`IFS=' ' dig \@$gns NS $domain +short`
 
@@ -54,19 +62,47 @@ for ip_ad in ${dns_result_google[@]}
 
 echo -e "\n"
 
+mx_result_google=`dig \@$gns MX $domain +short`
+
+echo -e "MX Records\n"
+
+if [[ -z $mx_result_google ]]; then
+  echo -e "${red}There are no MX records${nc} \n"
+  else
+  echo -e "MX:\n${whthold}$mx_result_google${nc}\n"
+fi
+
+
+echo -e "TXT Records \n"
+
+txt_result_google=`dig \@$gns TXT $domain +short`
+
+if [[ -z $txt_result_google ]]; then
+  echo -e "${red}There are no TXT records${nc} \n"
+  else
+  echo -e "TXT:\n${whthold}$txt_result_google${nc}\n"
+fi
+
 sleep 1
 
-echo -e "Checking the ${blue}DreamHost${nc} name server Records \n"
+hr "="
+
+echo -e "\n\nChecking the ${blue}DreamHost${nc} name server Records \n"
 
 for index in 1 2 3
   do
       dns_result_dh=`dig \@${dreamhostns[index]} $domain +short`
+      dns_mx_result_dh=`dig mx \@${dreamhostns[index]} $domain +short`
       if [[ -z $dns_result_dh ]]; then
 	echo -e "${dreamhostns[index]}:\n${pink}$dns_result_dh ${nc}"
 	echo -e "${yellow}This Name server returned no records${nc}\n"
       else
       echo -e "${dreamhostns[index]}:\n\n${pink}$dns_result_dh ${nc}\n"
       fi
+      if [[ $dns_mx_result_dh ]]; then
+      echo -e "MX:\n${pink}$dns_mx_result_dh ${nc}\n"
+      fi
+
   done
 
 sleep 1
